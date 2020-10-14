@@ -1,6 +1,8 @@
 import requests
 from sqlalchemy import create_engine, Table, Column, String, Float, MetaData
 from sqlalchemy.sql import select
+from datetime import datetime
+import matplotlib.pyplot as plt
 
 
 class WeatherProvider:
@@ -49,5 +51,27 @@ c = engine.connect()
 provider = WeatherProvider('I3D60I88UB6KPSDAVGK38HNP5')
 c.execute(weather.insert(), provider.get_data('Volgograd,Russia', '2020-09-20', '2020-09-29'))
 
-for row in c.execute(select([weather])):
-    print(row)
+entries = list(c.execute(select([weather])))
+
+for entry in entries:
+    print(entry)
+
+dates = [datetime.strptime(entry[0], '%Y-%m-%d') for entry in entries]
+
+fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
+
+ax1.set_ylabel('Temperature')
+min_temperatures = [entry[1] for entry in entries]
+max_temperatures = [entry[2] for entry in entries]
+average_temperatures = [(v_min + v_max) / 2 for v_min, v_max in zip(min_temperatures, max_temperatures)]
+ax1.plot(dates, min_temperatures, color='c')
+ax1.plot(dates, average_temperatures, color='gray', linestyle='--')
+ax1.plot(dates, max_temperatures, color='r')
+
+ax2.set_ylabel('Humidity')
+humidities = [entry[4] for entry in entries]
+ax2.plot(dates, humidities, color='b')
+
+ax2.set_xlabel('Date')
+plt.xticks(rotation=90)
+plt.show()
